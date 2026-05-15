@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Allow your site to call this from the browser
   res.setHeader('Access-Control-Allow-Origin', 'https://findmyspaghetti.com');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
@@ -14,21 +13,25 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server missing API key' });
   }
 
-  const url = 'https://api.foursquare.com/v3/places/search'
+  const url = 'https://places-api.foursquare.com/places/search'
     + '?ll=' + lat + ',' + lng
-    + '&categories=13236,13064,13065,13302'
-    + '&fields=fsq_id,name,location,categories,distance,rating,price,photos,stats'
+    + '&fsq_category_ids=4d4b7105d754a06374d81259'
+    + '&fields=fsq_place_id,name,location,categories,distance,rating,price,photos,stats,latitude,longitude'
     + '&sort=DISTANCE'
     + '&limit=20';
 
   try {
     const response = await fetch(url, {
-      headers: { 'Authorization': key, 'Accept': 'application/json' }
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Accept': 'application/json',
+        'X-Places-Api-Version': '2025-06-17'
+      }
     });
 
     if (!response.ok) {
       const text = await response.text();
-      return res.status(response.status).json({ error: 'Foursquare error', detail: text });
+      return res.status(response.status).json({ error: 'Foursquare error', status: response.status, detail: text });
     }
 
     const data = await response.json();
@@ -37,11 +40,11 @@ export default async function handler(req, res) {
         ? p.photos[0].prefix + '300x200' + p.photos[0].suffix
         : '';
       return {
-        id: p.fsq_id,
+        id: p.fsq_place_id,
         name: p.name,
-        lat: p.geocodes && p.geocodes.main ? p.geocodes.main.latitude : (p.location && p.location.lat),
-        lng: p.geocodes && p.geocodes.main ? p.geocodes.main.longitude : (p.location && p.location.lng),
-        address: (p.location && p.location.formatted_address) || '',
+        lat: p.latitude || (p.location && p.location.lat),
+        lng: p.longitude || (p.location && p.location.lng),
+        address: (p.location && (p.location.formatted_address || p.location.address)) || '',
         rating: p.rating || null,
         reviews: (p.stats && p.stats.total_ratings) || 0,
         price: p.price ? '$'.repeat(p.price) : '$$',
