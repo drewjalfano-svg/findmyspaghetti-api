@@ -1,5 +1,13 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const allowed = [
+    'https://findmyspaghetti.com',
+    'https://www.findmyspaghetti.com',
+    'https://find-my-spaghetti.webflow.io'
+  ];
+  const origin = req.headers.origin;
+  if (allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   const { lat, lng } = req.query;
